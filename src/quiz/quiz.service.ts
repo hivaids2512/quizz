@@ -1,0 +1,72 @@
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Quiz } from '../shared/entities/quiz.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { QuizSession } from '../shared/entities/quiz-session.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import * as dayjs from 'dayjs';
+import Redis from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
+
+@Injectable()
+export class QuizService {
+  constructor(
+    @InjectRepository(Quiz)
+    private readonly quizRepository: Repository<Quiz>,
+    @InjectRepository(QuizSession)
+    private readonly quizSessionRepository: Repository<QuizSession>,
+    @InjectRedis() private readonly redis: Redis
+  ) {}
+
+  async joinQuiz(userId: string, quizId: string): Promise<{ sessionId: string}> {
+    const quiz = await this.quizRepository.findOne({ where: { id: quizId }});
+
+    if (!quiz) {
+      throw new NotFoundException('Quiz not found');
+    }
+
+    const userAbleToJoinQuiz = await this.checkUserAbleToJoinQuiz(userId, quizId);
+
+    if (!userAbleToJoinQuiz) {
+      throw new BadRequestException('User not able to join quiz');
+    }
+
+    const sessionId = await this.issueQuizSession(userId, quizId);
+
+    return { sessionId }
+  }
+
+  async answerQuiz(userId: string, quizId: string): Promise<void> {
+    const quiz = await this.quizRepository.findOne({ where: { id: quizId }});
+
+    if (!quiz) {
+      throw new NotFoundException('Quiz not found');
+    }
+
+    const quizScore = await this.calculateQuizScore(quizId);
+    
+    await this.redis.zadd(`QUIZ-SERICE:LEADER_BOARD:${quizId}`, quizScore, userId);
+
+    // Todo: produce message to Kafka to
+    
+  }
+
+  private async checkUserAbleToJoinQuiz(userId: string, quizId: string) {
+    return true;
+  }
+
+  private async issueQuizSession(userId: string, quizId: string): Promise<string> {
+    const session = await this.quizSessionRepository.insert({ userId, quizId, expiredAt: dayjs().add(15, 'minutes') });
+
+    const sessionId = session.raw[0].id;
+    await this.redis.set(`QUIZ-SERICE:SESSION:${sessionId}`, JSON.stringify({ userId, quizId }));
+    
+    return sessionId;
+  }
+
+  private async calculateQuizScore(quizId: string) {
+    // Returns a random integer from 0 to 100:
+    return Math.floor(Math.random() * 101);
+  }
+}
