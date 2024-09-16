@@ -32,7 +32,7 @@ export class AuthGuard implements CanActivate {
     // }
 
     // Mock request data
-    request.session = { userId: '50587d48-83c6-4276-abd7-98a646f83d79' };
+    request.session = { userId: '50587d48-83c6-4276-abd7-98a646f83d79', userName: 'Quy Vu' };
 
     return true;
   }

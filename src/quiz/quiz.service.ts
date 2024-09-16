@@ -22,7 +22,7 @@ export class QuizService {
     @Inject('LEADER_BOARD_KAFKA') private readonly kafka: ClientKafka,
   ) {}
 
-  async joinQuiz(userId: string, quizId: string): Promise<{ sessionId: string}> {
+  async joinQuiz(userId: string, userName: string, quizId: string): Promise<{ sessionId: string}> {
     const quiz = await this.quizRepository.findOne({ where: { id: quizId }});
 
     if (!quiz) {
@@ -35,12 +35,12 @@ export class QuizService {
       throw new BadRequestException('User not able to join quiz');
     }
 
-    const sessionId = await this.issueQuizSession(userId, quizId);
+    const sessionId = await this.issueQuizSession(userId, userName, quizId);
 
     return { sessionId }
   }
 
-  async answerQuiz(userId: string, quizId: string): Promise<void> {
+  async answerQuiz(userId: string, userName: string, quizId: string): Promise<void> {
     const quiz = await this.quizRepository.findOne({ where: { id: quizId }});
 
     if (!quiz) {
@@ -49,7 +49,7 @@ export class QuizService {
 
     const quizScore = await this.calculateQuizScore(quizId);
     
-    await this.redis.zadd(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, quizScore, userId);
+    await this.redis.zadd(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, quizScore, `${userId}::${userName}::${quizScore}`);
     await this.kafka.emit('leaderboard-sync', JSON.stringify({ userId, quizId, score: quizScore }));    
   }
 
@@ -57,11 +57,11 @@ export class QuizService {
     return true;
   }
 
-  private async issueQuizSession(userId: string, quizId: string): Promise<string> {
+  private async issueQuizSession(userId: string, userName: string, quizId: string): Promise<string> {
     const session = await this.quizSessionRepository.insert({ userId, quizId, expiredAt: dayjs().add(15, 'minutes') });
 
     const sessionId = session.raw[0].id;
-    await this.redis.set(`${QUIZ_SESSION_REDIS_KEY}:${sessionId}`, JSON.stringify({ userId, quizId }));
+    await this.redis.set(`${QUIZ_SESSION_REDIS_KEY}:${sessionId}`, JSON.stringify({ userId, quizId, userName }));
     
     return sessionId;
   }

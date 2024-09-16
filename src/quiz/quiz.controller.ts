@@ -16,7 +16,7 @@ export class QuizController {
     @Param('id') quizId: string,
     @RequestSession() session: any,
   ): Promise<{ sessionId: string}> {
-    return this.quizService.joinQuiz(session.userId, quizId);
+    return this.quizService.joinQuiz(session.userId, session.userName, quizId);
   }
 
   @Post('/:id/answer')
@@ -30,6 +30,6 @@ export class QuizController {
       throw new BadRequestException('Invalid session');
     }
 
-    return this.quizService.answerQuiz(session.userId, quizId);
+    return this.quizService.answerQuiz(session.userId, session.userName, quizId);
   }
 }

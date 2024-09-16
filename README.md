@@ -55,17 +55,29 @@ The system follows micro-service architecture and has 4 main components
 - Framework: NestJs
 - Database: Mongodb
 - ORM: Mongoose
+- Infrastructure: Kubernetes
 
-### Quiz service
+#### Quiz service
 - Language: Nodejs
 - Framework: NestJs
 - Database: PostgreSQL
 - ORM: TypeOrm
+- Infrastructure: Kubernetes
 
-### Leaderboard service
+#### Leaderboard service
 - Language: Nodejs
 - Framework: NestJs - Websocket
 - Database: PostgreSQL
+- Infrastructure: Kubernetes
+
+### Build For the Future:
+
+- Scalability: flowing micro-service architecture where each of the comopnent is independent from eachother, auto scaling supported by k8s and efficient caching strategy, the system can cover a large number of users or quiz sessions. However, system operation cost should be considered and monitored.
+- Performance: Optimise query performance and effective caching strategy will enhance code performance.
+- Reliability & Maintainability: The code base is organized as mono-repo with multiple modules and impletemented different design patterns like dependency injection, singleton, factory, adapter and builder would make code cleaner and easier to maintain.
+- Monitoring and Observability: System's health can be monitored by many monitoring tools like Kibana or Datadogs. System alert via email, slack channel should also be considered to have quick action
+
+
 
 ## Installation
 

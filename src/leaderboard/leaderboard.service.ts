@@ -8,8 +8,17 @@ export class LeaderboardService {
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
   async getLeaderBoard(quizId) {
-    const leaderBoard = await this.redis.zrange(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, 0, 10, 'WITHSCORES');
+    const leaderBoard = await this.redis.zrange(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, 0, 10);
 
-    return leaderBoard;
+    return this.parseLeaderBoard(leaderBoard);
+  }
+
+  parseLeaderBoard (data: string[]) {
+    return data.map((item) => {
+      const id = item.split('::')[0];
+      const name = item.split('::')[1];
+      const score = item.split('::')[2];
+      return { id, name, score };
+    })
   }
 }
