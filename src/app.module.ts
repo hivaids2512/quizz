@@ -6,11 +6,12 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QuizModule } from './quiz/quiz.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { LeaderBoardConsumerModule } from './leader-board-consumer/leader-board-consumer.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
-
+    ConfigModule.forRoot({ isGlobal: true }),
     RedisModule.forRoot({
       config: {
         host: process.env.REDIS_HOST,
@@ -29,6 +30,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     }),
     QuizModule,
     LeaderboardModule,
+    LeaderBoardConsumerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

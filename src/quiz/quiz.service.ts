@@ -8,6 +8,8 @@ import { Cache } from 'cache-manager';
 import * as dayjs from 'dayjs';
 import Redis from 'ioredis';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
+import { LEADER_BOARD_REDIS_KEY, QUIZ_SESSION_REDIS_KEY } from '../shared/consts/index.const';
+import { ClientKafka } from '@nestjs/microservices';
 
 @Injectable()
 export class QuizService {
@@ -16,7 +18,8 @@ export class QuizService {
     private readonly quizRepository: Repository<Quiz>,
     @InjectRepository(QuizSession)
     private readonly quizSessionRepository: Repository<QuizSession>,
-    @InjectRedis() private readonly redis: Redis
+    @InjectRedis() private readonly redis: Redis,
+    @Inject('LEADER_BOARD_KAFKA') private readonly kafka: ClientKafka,
   ) {}
 
   async joinQuiz(userId: string, quizId: string): Promise<{ sessionId: string}> {
@@ -46,10 +49,8 @@ export class QuizService {
 
     const quizScore = await this.calculateQuizScore(quizId);
     
-    await this.redis.zadd(`QUIZ-SERICE:LEADER_BOARD:${quizId}`, quizScore, userId);
-
-    // Todo: produce message to Kafka to
-    
+    await this.redis.zadd(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, quizScore, userId);
+    await this.kafka.emit('leaderboard-sync', JSON.stringify({ userId, quizId, score: quizScore }));    
   }
 
   private async checkUserAbleToJoinQuiz(userId: string, quizId: string) {
@@ -60,7 +61,7 @@ export class QuizService {
     const session = await this.quizSessionRepository.insert({ userId, quizId, expiredAt: dayjs().add(15, 'minutes') });
 
     const sessionId = session.raw[0].id;
-    await this.redis.set(`QUIZ-SERICE:SESSION:${sessionId}`, JSON.stringify({ userId, quizId }));
+    await this.redis.set(`${QUIZ_SESSION_REDIS_KEY}:${sessionId}`, JSON.stringify({ userId, quizId }));
     
     return sessionId;
   }

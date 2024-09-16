@@ -1,5 +1,9 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Param, Post, UseGuards } from '@nestjs/common';
 import { QuizService } from './quiz.service';
+import { AuthGuard } from '../shared/guards/auth.guard';
+import { QuizSession } from '../shared/decorators/quiz-session.decorator';
+import { RequestSession } from '../shared/decorators/request-session.decorator';
+import { QuizGuard } from '../shared/guards/quiz.guard';
 
 @Controller('quizzes')
 export class QuizController {
@@ -7,19 +11,25 @@ export class QuizController {
   
   @Post('/:id/join')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthGuard)
   async joinQuiz(
     @Param('id') quizId: string,
+    @RequestSession() session: any,
   ): Promise<{ sessionId: string}> {
-    const userId = '50587d48-83c6-4276-abd7-98a646f83d79';
-    return this.quizService.joinQuiz(userId, quizId);
+    return this.quizService.joinQuiz(session.userId, quizId);
   }
 
   @Post('/:id/answer')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(QuizGuard)
   async answerQuiz(
     @Param('id') quizId: string,
+    @QuizSession() session: any,
   ): Promise<void> {
-    const userId = '50587d48-83c6-4276-abd7-98a646f83d79';
-    return this.quizService.answerQuiz(userId, quizId);
+    if (quizId !== session.quizId) {
+      throw new BadRequestException('Invalid session');
+    }
+
+    return this.quizService.answerQuiz(session.userId, quizId);
   }
 }
