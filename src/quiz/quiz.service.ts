@@ -49,7 +49,7 @@ export class QuizService {
 
     const quizScore = await this.calculateQuizScore(quizId);
     
-    await this.redis.zadd(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, quizScore, `${userId}::${userName}::${quizScore}`);
+    await this.redis.zadd(`${LEADER_BOARD_REDIS_KEY}:${quizId}`, quizScore, `${userId}::${userName}`);
     await this.kafka.emit('leaderboard-sync', JSON.stringify({ userId, quizId, score: quizScore }));    
   }
 
